@@ -24,30 +24,20 @@ function get(&$var, $default = null) {
     return isset($var) ? $var : $default;
 }
 
-$data = file_get_contents("http://"
-. getenv("PV_SCRAPER_INVERTER_ADDRESS") !== false ? getenv("PV_SCRAPER_INVERTER_ADDRESS") : ''
-    . "/solar_api/v1/GetInverterRealtimeData.cgi?Scope=Device&DeviceId=1&DataCollection=CommonInverterData");
+$data = file_get_contents("http://" . getenv("PV_SCRAPER_INVERTER_ADDRESS") . "/solar_api/v1/GetInverterRealtimeData.cgi?Scope=Device&DeviceId=1&DataCollection=CommonInverterData");
 $conn = pg_connect(
     "host="
-    . getenv("PV_SCRAPER_DB_HOST") !== false ? getenv("PV_SCRAPER_DB_HOST") : ''
-    . " port="
-    . getenv("PV_SCRAPER_DB_PORT") !== false ? getenv("PV_SCRAPER_DB_PORT") : ''
-    . " dbname="
-    . getenv("PV_SCRAPER_DB_DB") !== false ? getenv("PV_SCRAPER_DB_DB") : ''
-    . " user="
-    . getenv("PV_SCRAPER_DB_USERNAME") !== false ? getenv("PV_SCRAPER_DB_USERNAME") : ''
-    . " password="
-    . getenv("PV_SCRAPER_DB_PASSWORD") !== false ? getenv("PV_SCRAPER_DB_PASSWORD") : '');
+    . getenv("PV_SCRAPER_DB_HOST") . " port=" . getenv("PV_SCRAPER_DB_PORT") . " dbname=" . getenv("PV_SCRAPER_DB_DB") . " user=" . getenv("PV_SCRAPER_DB_USERNAME") . " password=" . getenv("PV_SCRAPER_DB_PASSWORD"));
 $result = pg_query($conn, "select * from public.users");
 $data_json = json_decode($data);
 $result = pg_insert($conn, "measurements", array("timestamp" => (string)date("c"), "current_pv" => $data_json->Body->Data->IDC->Value, "voltage_pv" => $data_json->Body->Data->UDC->Value, "current_grid" => $data_json->Body->Data->IAC->Value, "voltage_grid" => $data_json->Body->Data->UAC->Value, "day_production" => $data_json->Body->Data->DAY_ENERGY->Value));
 
-$token = getenv("PV_SCRAPER_INFLUX_TOKEN") !== false ? getenv("PV_SCRAPER_INFLUX_TOKEN") : '';
-$org = getenv("PV_SCRAPER_INFLUX_ORG") !== false ? getenv("PV_SCRAPER_INFLUX_ORG") : '';
-$bucket = getenv("PV_SCRAPER_INFLUX_BUCKET") !== false ? getenv("PV_SCRAPER_INFLUX_BUCKET") : '';
+$token = getenv("PV_SCRAPER_INFLUX_TOKEN");
+$org = getenv("PV_SCRAPER_INFLUX_ORG");
+$bucket = getenv("PV_SCRAPER_INFLUX_BUCKET");
 
 $client = new Client([
-    "url" => getenv("PV_SCRAPER_INFLUX_ADDRESS") !== false ? getenv("PV_SCRAPER_INFLUX_ADDRESS") : '',
+    "url" => getenv("PV_SCRAPER_INFLUX_ADDRESS"),
     "token" => $token,
 ]);
 
