@@ -1,0 +1,15 @@
+{
+  "name": "piotr/pv_scrapper",
+  "authors": [
+    {
+      "name": "piotrboronczyk",
+      "email": "boronczyk.piotr@gmail.com"
+    }
+  ],
+  "require": {
+    "influxdata/influxdb-client-php": "^1.11",
+    "ext-pgsql": "*",
+    "ext-json": "*"
+  },
+    "description": "fronius pv inverter data scraper"
+}
