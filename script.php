@@ -45,42 +45,45 @@ $writeApi = $client->createWriteApi();
 var_dump($data);
 var_dump($data_json->Body->Data->DeviceStatus->ErrorCode);
 $dataArray = [];
-switch ($data_json->Body->Data->DeviceStatus->ErrorCode){
-    case 0:
-        $dataArray = ['name' => 'instalacja_1',
-            'fields' => [
-                "current_pv" => (float)get($data_json->Body->Data->IDC->Value, 0.0),
-                "voltage_pv" => (float)get($data_json->Body->Data->UDC->Value, 0.0),
-                "current_grid" => (float)get($data_json->Body->Data->IAC->Value, 0.0),
-                "voltage_grid" => (float)get($data_json->Body->Data->UAC->Value, 0.0),
-                "frequency_grid" =>(float)get($data_json->Body->Data->FAC->Value, 0.0),
-                "power_grid" =>(float)get($data_json->Body->Data->PAC->Value, 0.0),
-                "day_production" => (float)get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)
-            ],
-            'time' => microtime(true)
-        ];
-        break;
+if(!$data_json->Body->Data->DeviceStatus->StateToReset){
+    switch ($data_json->Body->Data->DeviceStatus->ErrorCode){
+        case 0:
+            $dataArray = ['name' => 'instalacja_1',
+                'fields' => [
+                    "current_pv" => (float)get($data_json->Body->Data->IDC->Value, 0.0),
+                    "voltage_pv" => (float)get($data_json->Body->Data->UDC->Value, 0.0),
+                    "current_grid" => (float)get($data_json->Body->Data->IAC->Value, 0.0),
+                    "voltage_grid" => (float)get($data_json->Body->Data->UAC->Value, 0.0),
+                    "frequency_grid" =>(float)get($data_json->Body->Data->FAC->Value, 0.0),
+                    "power_grid" =>(float)get($data_json->Body->Data->PAC->Value, 0.0),
+                    "day_production" => (float)get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)
+                ],
+                'time' => microtime(true)
+            ];
+            break;
 
-    case 307:
-    case 306:
-        $dataArray = ['name' => 'instalacja_1',
-            'fields' => [
-                "current_pv" => (float)get($data_json->Body->Data->IDC->Value, 0.0),
-                "voltage_pv" => (float)get($data_json->Body->Data->UDC->Value, 0.0),
-                "day_production" => (float)get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)
-            ],
-            'time' => microtime(true)
-        ];
-    break;
-    case 522:
-        echo (string)date("c") . " 522 nie ma tu w sumie nic ciekawego";
-    break;
+        case 307:
+        case 306:
+            $dataArray = ['name' => 'instalacja_1',
+                'fields' => [
+                    "current_pv" => (float)get($data_json->Body->Data->IDC->Value, 0.0),
+                    "voltage_pv" => (float)get($data_json->Body->Data->UDC->Value, 0.0),
+                    "day_production" => (float)get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)
+                ],
+                'time' => microtime(true)
+            ];
+            break;
+        case 522:
+            echo (string)date("c") . " 522 nie ma tu w sumie nic ciekawego";
+            break;
 
-    default:
-        pg_insert($conn, "events", array("timestamp" => (string)gmdate("c"), "error_code" => $data_json->Body->Data->DeviceStatus->ErrorCode, "data" => $data));
-        break;
+        default:
+            pg_insert($conn, "events", array("timestamp" => (string)gmdate("c"), "error_code" => $data_json->Body->Data->DeviceStatus->ErrorCode, "data" => $data));
+            break;
 
+    }
 }
+
 
 var_dump($dataArray);
 if (!empty($dataArray)){
