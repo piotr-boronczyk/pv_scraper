@@ -30,7 +30,7 @@ $conn = pg_connect(
     . getenv("PV_SCRAPER_DB_HOST") . " port=" . getenv("PV_SCRAPER_DB_PORT") . " dbname=" . getenv("PV_SCRAPER_DB_DB") . " user=" . getenv("PV_SCRAPER_DB_USERNAME") . " password=" . getenv("PV_SCRAPER_DB_PASSWORD"));
 $result = pg_query($conn, "select * from public.users");
 $data_json = json_decode($data);
-$result = pg_insert($conn, "measurements", array("timestamp" => (string)date("c"), "current_pv" => $data_json->Body->Data->IDC->Value, "voltage_pv" => $data_json->Body->Data->UDC->Value, "current_grid" => $data_json->Body->Data->IAC->Value, "voltage_grid" => $data_json->Body->Data->UAC->Value, "day_production" => $data_json->Body->Data->DAY_ENERGY->Value));
+$result = pg_insert($conn, "measurements", array("timestamp" => (string)date("c"), "current_pv" => get($data_json->Body->Data->IDC->Value, 0.0), "voltage_pv" => get($data_json->Body->Data->UDC->Value,0.0), "current_grid" => get($data_json->Body->Data->IAC->Value, 0.0), "voltage_grid" => get($data_json->Body->Data->UAC->Value, 0.0), "day_production" => get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)));
 
 $token = getenv("PV_SCRAPER_INFLUX_TOKEN");
 $org = getenv("PV_SCRAPER_INFLUX_ORG");
@@ -42,18 +42,47 @@ $client = new Client([
 ]);
 
 $writeApi = $client->createWriteApi();
+var_dump($data);
+var_dump($data_json->Body->Data->DeviceStatus->ErrorCode);
+$dataArray = [];
+switch ($data_json->Body->Data->DeviceStatus->ErrorCode){
+    case 0:
+        $dataArray = ['name' => 'instalacja_1',
+            'fields' => [
+                "current_pv" => (float)get($data_json->Body->Data->IDC->Value, 0.0),
+                "voltage_pv" => (float)get($data_json->Body->Data->UDC->Value, 0.0),
+                "current_grid" => (float)get($data_json->Body->Data->IAC->Value, 0.0),
+                "voltage_grid" => (float)get($data_json->Body->Data->UAC->Value, 0.0),
+                "frequency_grid" =>(float)get($data_json->Body->Data->FAC->Value, 0.0),
+                "power_grid" =>(float)get($data_json->Body->Data->PAC->Value, 0.0),
+                "day_production" => (float)get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)
+            ],
+            'time' => microtime(true)
+        ];
+        break;
 
-$dataArray = ['name' => 'instalacja_1',
-    'fields' => [
-        "current_pv" => (float)get($data_json->Body->Data->IDC->Value, 0.0),
-        "voltage_pv" => (float)get($data_json->Body->Data->UDC->Value, 0.0),
-        "current_grid" => (float)get($data_json->Body->Data->IAC->Value, 0.0),
-        "voltage_grid" => (float)get($data_json->Body->Data->UAC->Value, 0.0),
-        "day_production" => (float)get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)
-    ],
-    'time' => microtime(true)
-];
+    case 307:
+    case 306:
+        $dataArray = ['name' => 'instalacja_1',
+            'fields' => [
+                "current_pv" => (float)get($data_json->Body->Data->IDC->Value, 0.0),
+                "voltage_pv" => (float)get($data_json->Body->Data->UDC->Value, 0.0),
+                "day_production" => (float)get($data_json->Body->Data->DAY_ENERGY->Value, 0.0)
+            ],
+            'time' => microtime(true)
+        ];
+    break;
+    case 522:
+        echo (string)date("c") . " 522 nie ma tu w sumie nic ciekawego";
+    break;
+
+    default:
+        pg_insert($conn, "events", array("timestamp" => (string)gmdate("c"), "error_code" => $data_json->Body->Data->DeviceStatus->ErrorCode, "data" => $data));
+        break;
+
+}
 
 var_dump($dataArray);
-
-$writeApi->write($dataArray, WritePrecision::S, $bucket, $org);
+if (!empty($dataArray)){
+    $writeApi->write($dataArray, WritePrecision::S, $bucket, $org);
+}
