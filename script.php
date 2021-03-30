@@ -1,5 +1,5 @@
 <?php /** @noinspection SqlNoDataSourceInspection */
-
+error_reporting(0);
 /*
  * This script requires environmental variables such as:
  * PV_SCRAPER_INVERTER_ADDRESS - local ip of fronius inverter
